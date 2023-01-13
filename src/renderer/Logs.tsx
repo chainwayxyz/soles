@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Grid, Tabs, Text, Textarea } from '@geist-ui/core';
+import { Tabs, Textarea } from '@geist-ui/core';
+import LogData from './LogData';
 
 const { ipcRenderer } = window?.electron || {
   ipcRenderer: {
@@ -9,24 +10,8 @@ const { ipcRenderer } = window?.electron || {
   },
 };
 
-class LogData {
-  private data: string[] = [];
-
-  private maxLines: number = 1000;
-
-  // add reverse
-  public addLine(line: string) {
-    this.data.unshift(line);
-    if (this.data.length > this.maxLines) {
-      this.data.pop();
-    }
-  }
-
-  public getLines(): string[] {
-    return this.data;
-  }
-}
-
+// Currently logs are not persisted
+// TODO: find a way to persist logs from main to renderer
 const Logs = () => {
   const [logData, setLogData] = React.useState<LogData>(new LogData());
   const [newLine, setNewLine] = React.useState<string>('');
@@ -36,20 +21,16 @@ const Logs = () => {
   const [newSolanaLine, setNewSolanaLine] = React.useState<string>('');
   const [lastSolanaLine, setLastSolanaLine] = React.useState<string>('');
 
-  // ipcRenderer.on('get-program-value', (arg: any) => {
-  //   setProgramValue(arg);
+  useEffect(() => {
+    return ipcRenderer.on('solana-log', (arg: any) => {
+      setNewSolanaLine(arg);
+    });
+  });
 
-  //   // read txt file from ../../logs
-  //   const filePath = path.join(__dirname, `../../logs/localnet-${arg}.txt`);
-  //   const files = fs.readdirSync(filePath);
-
-  //   console.log(files);
-
-  //   setLoading(false);
-  // });
-
-  ipcRenderer.on('solana-log', (arg: any) => {
-    setNewSolanaLine(arg);
+  useEffect(() => {
+    return ipcRenderer.on('log', (arg: any) => {
+      setNewLine(arg);
+    });
   });
 
   useEffect(() => {
@@ -59,10 +40,6 @@ const Logs = () => {
       setLastSolanaLine(newSolanaLine);
     }
   }, [lastSolanaLine, solanaData, newSolanaLine, setNewSolanaLine]);
-
-  ipcRenderer.on('log', (arg: any) => {
-    setNewLine(arg);
-  });
 
   useEffect(() => {
     if (newLine !== lastLine) {

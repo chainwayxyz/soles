@@ -33,14 +33,6 @@ let mainWindow: BrowserWindow | null = null;
 let localnetProcess: any = null;
 let transactionProcess: any = null;
 
-localnetProcess?.stdout.on('data', (data: any) => {
-  mainWindow?.webContents.send('log', data.toString());
-});
-
-transactionProcess?.stdout.on('data', (data: any) => {
-  mainWindow?.webContents.send('solana-log', data.toString());
-});
-
 export const programValue = Date.now();
 export const keyPairs: any = [];
 export const pubKeys: string[] = [];
@@ -93,7 +85,7 @@ const checkAndDownloadSolanaTools = async () => {
   // check if test-keys exists in that directory
   const { stdout: testKeys } = await exec('ls ~/.solana-config/test-keys');
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 10; i += 1) {
     if (!testKeys.includes(`test-keypair${i}.json`)) {
       // generate new and save
       // eslint-disable-next-line no-await-in-loop
@@ -122,6 +114,9 @@ const checkAndDownloadSolanaTools = async () => {
   v.stdout.on('data', (data: any) => {
     mainWindow?.webContents.send('log', data.toString());
   });
+  v.stderr.on('data', (data: any) => {
+    mainWindow?.webContents.send('log', `Error:${data.toString()}`);
+  });
 
   localnetProcess = v;
 
@@ -130,16 +125,14 @@ const checkAndDownloadSolanaTools = async () => {
   // sleep 5 seconds to allow localnet to start
   await new Promise((resolve) => setTimeout(resolve, 10000));
 
-  let l;
-  try {
-    await exec('solana config set --url localhost');
-    l = exec('solana logs');
-  } catch (err) {
-    console.log('Error starting solana logs', err);
-  }
+  await exec('solana config set --url localhost');
+  const l = spawn('solana', ['logs'], {});
 
   l.stdout.on('data', (data: any) => {
     mainWindow?.webContents.send('solana-log', data.toString());
+  });
+  l.stderr.on('data', (data: any) => {
+    mainWindow?.webContents.send('solana-log', `Error:${data.toString()}`);
   });
 
   transactionProcess = l;

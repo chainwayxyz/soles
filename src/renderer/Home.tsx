@@ -40,88 +40,100 @@ function Home() {
     delay: 0,
   });
 
-  ipcRenderer.on('get-all', (arg: any) => {
-    const newAccountData = arg.map((account: any, index: number) => {
-      return {
-        ...account,
-        key: '',
-        requestTokens: '',
-        transferTokens: '',
-      };
-    });
-    setAccounts(newAccountData);
-    setLoading(false);
-  });
-
-  ipcRenderer.on('get-localnet', (arg: any) => {
-    setLocalnet(arg);
-  });
-
-  ipcRenderer.on('get-block-height', (arg: any) => {
-    setLocalnet({
-      ...localnet,
-      blockHeight: arg,
+  useEffect(() => {
+    return ipcRenderer.on('get-all', (arg: any) => {
+      const newAccountData = arg.map((account: any, index: number) => {
+        return {
+          ...account,
+          key: '',
+          requestTokens: '',
+          transferTokens: '',
+        };
+      });
+      setAccounts(newAccountData);
+      setLoading(false);
     });
   });
 
-  ipcRenderer.on('get-slot', (arg: any) => {
-    setLocalnet({
-      ...localnet,
-      slot: arg,
+  useEffect(() => {
+    return ipcRenderer.on('get-slot', (arg: any) => {
+      setLocalnet({
+        ...localnet,
+        slot: arg,
+      });
     });
   });
 
-  ipcRenderer.on('get-balances', (arg: any) => {
-    const newAccountData = accounts.map((account: any, index: number) => {
-      return {
-        ...account,
-        balance: arg[index].balance,
-      };
+  useEffect(() => {
+    return ipcRenderer.on('get-block-height', (arg: any) => {
+      setLocalnet({
+        ...localnet,
+        blockHeight: arg,
+      });
     });
-    setAccounts(newAccountData);
   });
 
-  ipcRenderer.on('get-keypair', (arg) => {
-    const blob = new Blob([JSON.stringify(arg)], {
-      type: 'text/plain',
+  useEffect(() => {
+    return ipcRenderer.on('get-localnet', (arg: any) => {
+      setLocalnet(arg);
     });
-    saveAs(blob, 'keypair.json');
   });
 
-  ipcRenderer.once('transfer-tokens', (arg: any) => {
-    setLoading(false);
-    setToastValue({ text: arg, delay: 2000 });
+  useEffect(() => {
+    return ipcRenderer.once('transfer-tokens', (arg: any) => {
+      setLoading(false);
+      setToastValue({ text: arg, delay: 2000 });
+    });
   });
 
-  ipcRenderer.once('airdrop-custom-tokens', (arg: any) => {
-    setLoading(false);
-    setToastValue({ text: arg, delay: 2000 });
+  useEffect(() => {
+    return ipcRenderer.on('get-keypair', (arg) => {
+      const blob = new Blob([JSON.stringify(arg)], {
+        type: 'text/plain',
+      });
+      saveAs(blob, 'keypair.json');
+    });
   });
 
-  ipcRenderer.on('airdrop-tokens', (arg) => {
-    ipcRenderer.sendMessage('get-balances', []);
-    setLoading(false);
+  useEffect(() => {
+    return ipcRenderer.on('get-balances', (arg: any) => {
+      const newAccountData = accounts.map((account: any, index: number) => {
+        return {
+          ...account,
+          balance: arg[index].balance,
+        };
+      });
+      setAccounts(newAccountData);
+    });
   });
 
-  ipcRenderer.on('reset-localnet', (arg) => {
-    setLoading(false);
-    window.location.reload();
+  useEffect(() => {
+    return ipcRenderer.once('airdrop-custom-tokens', (arg: any) => {
+      setLoading(false);
+      setToastValue({ text: arg, delay: 2000 });
+    });
   });
 
-  ipcRenderer.on('restart-localnet', (arg) => {
-    setLoading(false);
-    window.location.reload();
+  useEffect(() => {
+    return ipcRenderer.on('airdrop-tokens', (arg) => {
+      ipcRenderer.sendMessage('get-balances', []);
+      setLoading(false);
+    });
   });
 
-  const resetHandler = () => {
-    ipcRenderer.sendMessage('reset-localnet', []);
-    setLoading(true);
-  };
+  useEffect(() => {
+    return ipcRenderer.on('reset-localnet', (arg) => {
+      setLoading(false);
+      window.location.reload();
+    });
+  });
 
-  const restartHandler = () => {
-    ipcRenderer.sendMessage('restart-localnet', []);
-    setLoading(true);
-  };
+  useEffect(() => {
+    return ipcRenderer.on('restart-localnet', (arg) => {
+      setLoading(false);
+      window.location.reload();
+    });
+  });
 
   const keyAction = (_value: any, _rowData: any, index: any) => {
     const keyHandler = () => {
@@ -144,6 +156,16 @@ function Home() {
         Request Token
       </Button>
     );
+  };
+
+  const resetHandler = () => {
+    ipcRenderer.sendMessage('reset-localnet', []);
+    setLoading(true);
+  };
+
+  const restartHandler = () => {
+    ipcRenderer.sendMessage('restart-localnet', []);
+    setLoading(true);
   };
 
   const transferAction = (_value: any, _rowData: any, index: any) => {
@@ -246,12 +268,13 @@ function Home() {
         onSubmit={airdropHandler}
       />
       <Grid.Container gap={2} justify="center" alignItems="flex-start">
-        <Grid xs={6} height="100px">
+        <Grid xs={6} height="70px">
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'center',
+              justifyContent: 'start',
+              alignItems: 'start',
               width: '100%',
             }}
           >
@@ -263,12 +286,13 @@ function Home() {
             </Text>
           </div>
         </Grid>
-        <Grid xs={6} height="100px">
+        <Grid xs={6} height="70px">
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'center',
+              justifyContent: 'start',
+              alignItems: 'start',
               width: '100%',
             }}
           >
@@ -280,12 +304,13 @@ function Home() {
             </Text>
           </div>
         </Grid>
-        <Grid xs={6} height="100px">
+        <Grid xs={6} height="70px">
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'center',
+              justifyContent: 'start',
+              alignItems: 'start',
               width: '100%',
             }}
           >
@@ -297,7 +322,7 @@ function Home() {
             </Text>
           </div>
         </Grid>
-        <Grid xs={6} height="100px">
+        <Grid xs={6} height="70px">
           <div
             style={{
               display: 'flex',
@@ -355,7 +380,7 @@ function Home() {
             </Text>
           </div>
         </Grid>
-        <Grid xs={24}>
+        <Grid xs={24} style={{ overflowY: 'scroll' }}>
           <Table data={accounts}>
             <Table.Column prop="index" label="Index" />
             <Table.Column prop="address" label="Address" />

@@ -1,5 +1,10 @@
 import { Button, Page } from '@geist-ui/core';
-import { MemoryRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import {
+  MemoryRouter as Router,
+  Routes,
+  Route,
+  NavLink,
+} from 'react-router-dom';
 import { AiOutlineHome, AiOutlineCode } from 'react-icons/ai';
 import './App.css';
 import Home from './Home';
@@ -8,7 +13,6 @@ import Logs from './Logs';
 export default function App() {
   return (
     <Router>
-      {/* Create tab looking buttons */}
       <nav
         style={{
           display: 'flex',
@@ -20,34 +24,38 @@ export default function App() {
           paddingLeft: '10px',
         }}
       >
-        <Link
+        <NavLink
           to="/"
-          style={{
+          end
+          style={({ isActive }) => ({
+            fontWeight: isActive ? 'bold' : 'lighter',
             padding: '12px',
             fontSize: '24px',
             color: 'white',
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-          }}
+          })}
         >
           <AiOutlineHome />
           Home
-        </Link>
-        <Link
+        </NavLink>
+        <NavLink
           to="/logs"
-          style={{
+          end
+          style={({ isActive }) => ({
+            fontWeight: isActive ? 'bold' : 'lighter',
             padding: '12px',
             fontSize: '24px',
             color: 'white',
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-          }}
+          })}
         >
           <AiOutlineCode />
           Logs
-        </Link>
+        </NavLink>
       </nav>
       <div
         style={{
@@ -57,8 +65,8 @@ export default function App() {
         }}
       >
         <Routes>
-          <Route path="/" element={<Home />} />
           <Route path="/logs" element={<Logs />} />
+          <Route path="/" element={<Home />} />
         </Routes>
       </div>
     </Router>
