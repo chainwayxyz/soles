@@ -12,9 +12,3 @@ body {
   justify-content: start;
   align-items: flex-start;
 }
-
-#root {
-  margin-top: 20px;
-  margin-left: 20px;
-  margin-right: 20px;
-}

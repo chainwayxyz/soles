@@ -30,11 +30,16 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
-let transactionLogFile: any;
-let localnetLogFile: any;
+let localnetProcess: any = null;
+let transactionProcess: any = null;
 
-let localnetProcess: any;
-let transactionProcess: any;
+localnetProcess?.stdout.on('data', (data: any) => {
+  mainWindow?.webContents.send('log', data.toString());
+});
+
+transactionProcess?.stdout.on('data', (data: any) => {
+  mainWindow?.webContents.send('solana-log', data.toString());
+});
 
 export const programValue = Date.now();
 export const keyPairs: any = [];
@@ -66,50 +71,6 @@ const installExtensions = async () => {
 };
 
 const checkAndDownloadSolanaTools = async () => {
-  try {
-    await exec(
-      `rm -rf ${path.resolve(require('electron').app.getAppPath(), 'logs')}`
-    );
-  } catch (err) {
-    console.log('Log directory already not exists, continuing');
-  }
-
-  try {
-    await exec(
-      `mkdir ${path.resolve(require('electron').app.getAppPath(), 'logs')}`
-    );
-  } catch (err) {
-    console.log('Log directory already exists, continuing');
-  }
-
-  await exec(
-    `touch ${path.resolve(
-      require('electron').app.getAppPath(),
-      `logs/localnet-${programValue}.txt`
-    )}`
-  );
-  await exec(
-    `touch ${path.resolve(
-      require('electron').app.getAppPath(),
-      `logs/transaction-${programValue}.txt`
-    )}`
-  );
-
-  transactionLogFile = fs.createWriteStream(
-    path.resolve(
-      require('electron').app.getAppPath(),
-      `logs/transaction-${programValue}.txt`
-    ),
-    { flags: 'a' }
-  );
-  localnetLogFile = fs.createWriteStream(
-    path.resolve(
-      require('electron').app.getAppPath(),
-      `logs/localnet-${programValue}.txt`
-    ),
-    { flags: 'a' }
-  );
-
   // download solana cli
   await exec(
     'sh -c "$(curl -sSfL https://release.solana.com/v1.14.12/install)"'
@@ -158,25 +119,30 @@ const checkAndDownloadSolanaTools = async () => {
 
   // fork new process to run solana localnet, no wait
   const v = spawn('solana-test-validator', [], {});
-  v.stdout.pipe(localnetLogFile);
+  v.stdout.on('data', (data: any) => {
+    mainWindow?.webContents.send('log', data.toString());
+  });
 
   localnetProcess = v;
 
   console.log('Test validator has been started.');
 
-  // eslint-disable-next-line no-await-in-loop
-  await exec('solana config set --url localhost');
-
   // sleep 5 seconds to allow localnet to start
   await new Promise((resolve) => setTimeout(resolve, 10000));
 
-  const l = spawn('solana logs', [], {});
-  l.stdout.pipe(transactionLogFile);
+  let l;
+  try {
+    await exec('solana config set --url localhost');
+    l = exec('solana logs');
+  } catch (err) {
+    console.log('Error starting solana logs', err);
+  }
+
+  l.stdout.on('data', (data: any) => {
+    mainWindow?.webContents.send('solana-log', data.toString());
+  });
 
   transactionProcess = l;
-
-  // send log file names to renderer
-  mainWindow?.webContents.send('program-value', programValue);
 };
 
 const createWindow = async () => {
@@ -259,59 +225,15 @@ app
       // sleep 5 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // delete log file and recreate
-      await exec(
-        `rm ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/localnet-${programValue}.txt`
-        )}`
-      );
-      await exec(
-        `touch ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/localnet-${programValue}.txt`
-        )}`
-      );
-
-      await exec(
-        `rm ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/transaction-${programValue}.txt`
-        )}`
-      );
-      await exec(
-        `touch ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/transaction-${programValue}.txt`
-        )}`
-      );
-
-      localnetLogFile = fs.createWriteStream(
-        path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/localnet-${programValue}.txt`
-        ),
-        { flags: 'a' }
-      );
-      transactionLogFile = fs.createWriteStream(
-        path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/transaction-${programValue}.txt`
-        ),
-        { flags: 'a' }
-      );
-
       console.log('Starting new test validator...');
       const v = spawn('solana-test-validator', [], {});
-      v.stdout.pipe(localnetLogFile);
       localnetProcess = v;
       console.log('New test validator has been started.');
 
       // wait 5 seconds to allow localnet to start
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      const l = spawn('solana logs', [], {});
-      l.stdout.pipe(transactionLogFile);
+      const l = exec('solana logs');
       transactionProcess = l;
 
       event.reply('restart-localnet', 'done');
@@ -324,62 +246,22 @@ app
       // sleep 5 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // delete log file and recreate
-      await exec(
-        `rm ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/localnet-${programValue}.txt`
-        )}`
-      );
-      await exec(
-        `touch ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/localnet-${programValue}.txt`
-        )}`
-      );
-
-      await exec(
-        `rm ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/transaction-${programValue}.txt`
-        )}`
-      );
-      await exec(
-        `touch ${path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/transaction-${programValue}.txt`
-        )}`
-      );
-
-      localnetLogFile = fs.createWriteStream(
-        path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/localnet-${programValue}.txt`
-        ),
-        { flags: 'a' }
-      );
-      transactionLogFile = fs.createWriteStream(
-        path.resolve(
-          require('electron').app.getAppPath(),
-          `logs/transaction-${programValue}.txt`
-        ),
-        { flags: 'a' }
-      );
-
       console.log('Starting new test validator...');
       const v = spawn('solana-test-validator', ['-r'], {});
-      v.stdout.pipe(localnetLogFile);
       localnetProcess = v;
       console.log('New test validator has been started.');
 
       // wait 5 seconds to allow localnet to start
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      const l = spawn('solana logs', [], {});
-      l.stdout.pipe(transactionLogFile);
+      const l = exec('solana logs');
       transactionProcess = l;
 
       event.reply('reset-localnet', 'done');
+    });
+
+    ipcMain.on('get-program-value', async (event, _arg) => {
+      event.reply('get-program-value', programValue);
     });
 
     ipcMain.on('get-localnet', async (event, _arg) => {

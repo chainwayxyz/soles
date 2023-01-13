@@ -206,7 +206,7 @@ function Home() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      await delayFunc(10000);
+      await delayFunc(5000);
       ipcRenderer.sendMessage('get-localnet', []);
       ipcRenderer.sendMessage('get-all', []);
     }
