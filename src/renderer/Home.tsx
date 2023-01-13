@@ -8,7 +8,13 @@ import { BiReset, BiCoin } from 'react-icons/bi';
 import TransferModal from './TransferModal';
 import AirdropModal from './AirdropModal';
 
-const { ipcRenderer } = window?.electron || {};
+const { ipcRenderer } = window?.electron || {
+  ipcRenderer: {
+    on: () => {},
+    sendMessage: () => {},
+    once: () => {},
+  },
+};
 
 const delayFunc = (ms: number | undefined) =>
   new Promise((resolve) => setTimeout(resolve, ms));
