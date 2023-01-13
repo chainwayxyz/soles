@@ -197,6 +197,7 @@ const createWindow = async () => {
     width: 1024,
     height: 728,
     icon: getAssetPath('icon.png'),
+    resizable: false,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
@@ -252,11 +253,11 @@ app
   .then(() => {
     checkAndDownloadSolanaTools();
     ipcMain.on('restart-localnet', async (event, _arg) => {
-      await transactionProcess.kill('SIGINT');
-      await localnetProcess.kill('SIGINT');
+      await transactionProcess?.kill('SIGINT');
+      await localnetProcess?.kill('SIGINT');
 
       // sleep 5 seconds
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // delete log file and recreate
       await exec(
@@ -307,7 +308,7 @@ app
       console.log('New test validator has been started.');
 
       // wait 5 seconds to allow localnet to start
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const l = spawn('solana logs', [], {});
       l.stdout.pipe(transactionLogFile);
@@ -317,11 +318,11 @@ app
     });
 
     ipcMain.on('reset-localnet', async (event, _arg) => {
-      await transactionProcess.kill('SIGINT');
-      await localnetProcess.kill('SIGINT');
+      await transactionProcess?.kill('SIGINT');
+      await localnetProcess?.kill('SIGINT');
 
       // sleep 5 seconds
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // delete log file and recreate
       await exec(
@@ -366,19 +367,46 @@ app
       );
 
       console.log('Starting new test validator...');
-      const v = spawn('solana-test-validator', [], {});
+      const v = spawn('solana-test-validator', ['-r'], {});
       v.stdout.pipe(localnetLogFile);
       localnetProcess = v;
       console.log('New test validator has been started.');
 
       // wait 5 seconds to allow localnet to start
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const l = spawn('solana logs', [], {});
       l.stdout.pipe(transactionLogFile);
       transactionProcess = l;
 
       event.reply('reset-localnet', 'done');
+    });
+
+    ipcMain.on('get-localnet', async (event, _arg) => {
+      const { stdout: blockHeight } = await exec('solana block-height');
+      const { stdout: slot } = await exec('solana slot');
+
+      event.reply('get-localnet', {
+        blockHeight,
+        slot,
+        rpc: 'http://localhost:8899',
+      });
+    });
+
+    ipcMain.on('get-all', async (event, _arg) => {
+      console.log('get-all');
+      const balances = await fetchBalances(pubKeys);
+      const nonces = await fetchNonces(pubKeys);
+      const all = [];
+      for (let i = 0; i < pubKeys.length; i += 1) {
+        const obj: any = {};
+        obj.index = i.toString();
+        obj.address = pubKeys[i];
+        obj.balance = balances[i].balance.toString();
+        obj.nonce = nonces[i].nonce;
+        all.push(obj);
+      }
+      event.reply('get-all', all);
     });
 
     ipcMain.on('get-public-keys', async (event, _arg) => {
