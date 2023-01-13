@@ -1,4 +1,4 @@
-import { Button, Divider, Grid, Table, Text, useToasts } from '@geist-ui/core';
+import { Button, Grid, Table, Text, useToasts } from '@geist-ui/core';
 import React, { useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { LoaderComponent } from 'react-fullscreen-loader';
@@ -8,7 +8,7 @@ import { BiReset, BiCoin } from 'react-icons/bi';
 import TransferModal from './TransferModal';
 import AirdropModal from './AirdropModal';
 
-const { ipcRenderer } = window.electron;
+const { ipcRenderer } = window?.electron || {};
 
 const delayFunc = (ms: number | undefined) =>
   new Promise((resolve) => setTimeout(resolve, ms));
