@@ -16,7 +16,7 @@ import fs from 'fs';
 
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import { fetchBalances, fetchNonces } from './handlers';
+import { fetchBalances } from './handlers';
 
 const { exec, spawn } = require('promisify-child-process');
 
@@ -396,14 +396,12 @@ app
     ipcMain.on('get-all', async (event, _arg) => {
       console.log('get-all');
       const balances = await fetchBalances(pubKeys);
-      const nonces = await fetchNonces(pubKeys);
       const all = [];
       for (let i = 0; i < pubKeys.length; i += 1) {
         const obj: any = {};
         obj.index = i.toString();
         obj.address = pubKeys[i];
         obj.balance = balances[i].balance.toString();
-        obj.nonce = nonces[i].nonce;
         all.push(obj);
       }
       event.reply('get-all', all);
@@ -415,10 +413,6 @@ app
 
     ipcMain.on('get-balances', async (event, _arg) => {
       event.reply('get-balances', await fetchBalances(pubKeys));
-    });
-
-    ipcMain.on('get-nonces', async (event, _arg) => {
-      event.reply('get-nonces', await fetchNonces(pubKeys));
     });
 
     ipcMain.on('get-block', async (event, _arg) => {
@@ -441,23 +435,32 @@ app
       event.reply('get-keypair', keyPairs[arg]);
     });
 
-    ipcMain.on('get-nonce', async (event, arg) => {
-      const { stdout } = await exec(`solana nonce ${arg}`);
-      event.reply('get-nonce', stdout);
-    });
-
     ipcMain.on('transfer-tokens', async (event, arg) => {
-      const { stdout } = await exec(
-        `solana transfer \
-        -k ~/.solana-config/test-keys/test-keypair${arg[0].index}.json \
-        ${arg[0].to} ${arg[0].amount} --allow-unfunded-recipient`
-      );
-      event.reply('transfer-tokens', stdout?.toString().trim().split(':')[1]);
+      try {
+        const { stdout } = await exec(
+          `solana transfer \
+          -k ~/.solana-config/test-keys/test-keypair${arg[0].index}.json \
+          ${arg[0].to} ${arg[0].amount} --allow-unfunded-recipient`
+        );
+
+        event.reply('transfer-tokens', stdout?.toString().trim());
+      } catch (error: any) {
+        if (error) {
+          event.reply('transfer-tokens', error.stderr.toString().trim());
+        }
+      }
     });
 
     ipcMain.on('airdrop-tokens', async (event, arg) => {
       await exec(`solana airdrop 10 ${arg}`);
       event.reply('airdrop-tokens', await fetchBalances(pubKeys));
+    });
+
+    ipcMain.on('airdrop-custom-tokens', async (event, arg) => {
+      const { stdout, stderr } = await exec(
+        `solana airdrop ${arg[0].amount} ${arg[0].to}`
+      );
+      event.reply('airdrop-custom-tokens', stdout || stderr);
     });
     createWindow();
     app.on('activate', () => {

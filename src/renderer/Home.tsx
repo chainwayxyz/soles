@@ -1,24 +1,40 @@
-import { Button, Divider, Grid, Table, Text } from '@geist-ui/core';
+import { Button, Divider, Grid, Table, Text, useToasts } from '@geist-ui/core';
 import React, { useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { LoaderComponent } from 'react-fullscreen-loader';
 import 'react-fullscreen-loader/src/loader.css';
 import { MdRestartAlt } from 'react-icons/md';
 import { BiReset, BiCoin } from 'react-icons/bi';
+import TransferModal from './TransferModal';
+import AirdropModal from './AirdropModal';
 
-const delay = (ms: number | undefined) =>
+const { ipcRenderer } = window.electron;
+
+const delayFunc = (ms: number | undefined) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 const mock: any = [];
 const mockObj: any = {};
 
 function Home() {
-  const [keyPair, setKeyPair] = React.useState<any>([]);
+  const { setToast } = useToasts();
   const [accounts, setAccounts] = React.useState<any>(mock);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [localnet, setLocalnet] = React.useState<any>(mockObj);
 
-  window.electron.ipcRenderer.on('get-all', (arg: any) => {
+  const [isAirdropModalVisible, setIsAirdropModalVisible] =
+    React.useState<boolean>(false);
+
+  const [isTransferModalVisible, setIsTransferModalVisible] =
+    React.useState<boolean>(false);
+  const [transferKey, setTransferKey] = React.useState<number>(0);
+
+  const [toastValue, setToastValue] = React.useState<any>({
+    text: '',
+    delay: 0,
+  });
+
+  ipcRenderer.on('get-all', (arg: any) => {
     const newAccountData = arg.map((account: any, index: number) => {
       return {
         ...account,
@@ -31,25 +47,25 @@ function Home() {
     setLoading(false);
   });
 
-  window.electron.ipcRenderer.on('get-localnet', (arg: any) => {
+  ipcRenderer.on('get-localnet', (arg: any) => {
     setLocalnet(arg);
   });
 
-  window.electron.ipcRenderer.on('get-block-height', (arg: any) => {
+  ipcRenderer.on('get-block-height', (arg: any) => {
     setLocalnet({
       ...localnet,
       blockHeight: arg,
     });
   });
 
-  window.electron.ipcRenderer.on('get-slot', (arg: any) => {
+  ipcRenderer.on('get-slot', (arg: any) => {
     setLocalnet({
       ...localnet,
       slot: arg,
     });
   });
 
-  window.electron.ipcRenderer.on('get-balances', (arg: any) => {
+  ipcRenderer.on('get-balances', (arg: any) => {
     const newAccountData = accounts.map((account: any, index: number) => {
       return {
         ...account,
@@ -59,46 +75,51 @@ function Home() {
     setAccounts(newAccountData);
   });
 
-  window.electron.ipcRenderer.on('get-nonces', (arg: any) => {
-    const newAccountData = accounts.map((account: any, index: number) => {
-      return {
-        ...account,
-        nonce: arg[index].nonce,
-      };
-    });
-    setAccounts(newAccountData);
-  });
-
-  window.electron.ipcRenderer.on('get-keypair', (arg) => {
+  ipcRenderer.on('get-keypair', (arg) => {
     const blob = new Blob([JSON.stringify(arg)], {
       type: 'text/plain',
     });
     saveAs(blob, 'keypair.json');
   });
 
-  window.electron.ipcRenderer.on('transfer-tokens', (arg) => {
-    console.log(arg);
-    // toast!
+  ipcRenderer.once('transfer-tokens', (arg: any) => {
+    setLoading(false);
+    setToastValue({ text: arg, delay: 2000 });
   });
 
-  window.electron.ipcRenderer.on('airdrop-tokens', (arg) => {
-    window.electron.ipcRenderer.sendMessage('get-balances', []);
+  ipcRenderer.once('airdrop-custom-tokens', (arg: any) => {
+    setLoading(false);
+    setToastValue({ text: arg, delay: 2000 });
+  });
+
+  ipcRenderer.on('airdrop-tokens', (arg) => {
+    ipcRenderer.sendMessage('get-balances', []);
     setLoading(false);
   });
 
-  window.electron.ipcRenderer.on('reset-localnet', (arg) => {
+  ipcRenderer.on('reset-localnet', (arg) => {
+    setLoading(false);
+    window.location.reload();
+  });
+
+  ipcRenderer.on('restart-localnet', (arg) => {
     setLoading(false);
     window.location.reload();
   });
 
   const resetHandler = () => {
-    window.electron.ipcRenderer.sendMessage('reset-localnet', []);
+    ipcRenderer.sendMessage('reset-localnet', []);
+    setLoading(true);
+  };
+
+  const restartHandler = () => {
+    ipcRenderer.sendMessage('restart-localnet', []);
     setLoading(true);
   };
 
   const keyAction = (_value: any, _rowData: any, index: any) => {
     const keyHandler = () => {
-      window.electron.ipcRenderer.sendMessage('get-keypair', [index]);
+      ipcRenderer.sendMessage('get-keypair', [index]);
     };
     return (
       <Button type="error" auto scale={1 / 3} font="12px" onClick={keyHandler}>
@@ -109,9 +130,7 @@ function Home() {
 
   const requestAction = (_value: any, _rowData: any, index: any) => {
     const keyHandler = () => {
-      window.electron.ipcRenderer.sendMessage('airdrop-tokens', [
-        _rowData.address,
-      ]);
+      ipcRenderer.sendMessage('airdrop-tokens', [_rowData.address]);
       setLoading(true);
     };
     return (
@@ -123,9 +142,8 @@ function Home() {
 
   const transferAction = (_value: any, _rowData: any, index: any) => {
     const keyHandler = () => {
-      // open modal
-      // get to and amount
-      // toast return value
+      setTransferKey(index);
+      setIsTransferModalVisible(true);
     };
     return (
       <Button type="error" auto scale={1 / 3} font="12px" onClick={keyHandler}>
@@ -134,28 +152,72 @@ function Home() {
     );
   };
 
+  const transferHandler = (
+    to: string | undefined,
+    amount: string | undefined
+  ) => {
+    setIsTransferModalVisible(false);
+    if (!to || !amount) {
+      setToast({ text: 'Please enter valid values', delay: 2000 });
+      return;
+    }
+    setLoading(true);
+    ipcRenderer.sendMessage('transfer-tokens', [
+      {
+        index: transferKey,
+        to,
+        amount,
+      },
+    ]);
+  };
+
+  const airdropHandler = (
+    to: string | undefined,
+    amount: string | undefined
+  ) => {
+    setIsAirdropModalVisible(false);
+    if (!to || !amount) {
+      setToast({ text: 'Please enter valid values', delay: 2000 });
+      return;
+    }
+    setLoading(true);
+    ipcRenderer.sendMessage('airdrop-custom-tokens', [
+      {
+        to,
+        amount,
+      },
+    ]);
+  };
+
+  useEffect(() => {
+    if (toastValue.text) {
+      const { text, delay } = toastValue;
+      setToastValue({ text: '', delay: 0 });
+      setToast({ text, delay });
+    }
+  }, [setToast, toastValue]);
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      await delay(10000);
-      window.electron.ipcRenderer.sendMessage('get-localnet', []);
-      window.electron.ipcRenderer.sendMessage('get-all', []);
+      await delayFunc(10000);
+      ipcRenderer.sendMessage('get-localnet', []);
+      ipcRenderer.sendMessage('get-all', []);
     }
     fetchData();
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      window.electron.ipcRenderer.sendMessage('get-balances', []);
-      window.electron.ipcRenderer.sendMessage('get-nonces', []);
+      ipcRenderer.sendMessage('get-balances', []);
     }, 10000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      window.electron.ipcRenderer.sendMessage('get-block-height', []);
-      window.electron.ipcRenderer.sendMessage('get-slot', []);
+      ipcRenderer.sendMessage('get-block-height', []);
+      ipcRenderer.sendMessage('get-slot', []);
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -166,6 +228,16 @@ function Home() {
         loading={loading}
         backgroundColor="black"
         loadingColor="white"
+      />
+      <TransferModal
+        isModalVisible={isTransferModalVisible}
+        setIsModalVisible={setIsTransferModalVisible}
+        onSubmit={transferHandler}
+      />
+      <AirdropModal
+        isModalVisible={isAirdropModalVisible}
+        setIsModalVisible={setIsAirdropModalVisible}
+        onSubmit={airdropHandler}
       />
       <Grid.Container gap={2} justify="center" alignItems="flex-start">
         <Grid xs={6} height="100px">
@@ -239,6 +311,7 @@ function Home() {
                 cursor: 'pointer',
                 lineHeight: '0',
               }}
+              onClick={() => setIsAirdropModalVisible(true)}
             >
               <BiCoin size={20} />
               <br />
@@ -253,6 +326,7 @@ function Home() {
                 cursor: 'pointer',
                 lineHeight: '0',
               }}
+              onClick={restartHandler}
             >
               <MdRestartAlt size={20} />
               <br />
@@ -280,7 +354,6 @@ function Home() {
             <Table.Column prop="index" label="Index" />
             <Table.Column prop="address" label="Address" />
             <Table.Column prop="balance" label="Balance" />
-            <Table.Column prop="nonce" label="Nonce" />
             <Table.Column prop="key" label="Key" render={keyAction} />
             <Table.Column
               prop="requst"
