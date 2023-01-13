@@ -2,7 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Input, Modal } from '@geist-ui/core';
 
-const TransferModal = ({ isModalVisible, setIsModalVisible, onSubmit }) => {
+// eslint-disable-next-line react/prop-types
+const TransferModal = ({
+  isModalVisible,
+  setIsModalVisible,
+  onSubmit,
+}: {
+  isModalVisible: boolean;
+  setIsModalVisible: (value: boolean) => void;
+  onSubmit: (to: string, amount: string) => void;
+}) => {
   const [to, setTo] = React.useState<string>('');
   const [amount, setAmount] = React.useState<string>('');
   return (
@@ -56,12 +65,6 @@ const TransferModal = ({ isModalVisible, setIsModalVisible, onSubmit }) => {
       </Modal.Action>
     </Modal>
   );
-};
-
-TransferModal.propTypes = {
-  isModalVisible: PropTypes.bool.isRequired,
-  setIsModalVisible: PropTypes.func.isRequired,
-  onSubmit: PropTypes.func.isRequired,
 };
 
 export default TransferModal;

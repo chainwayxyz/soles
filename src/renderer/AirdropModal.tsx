@@ -2,7 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Input, Modal } from '@geist-ui/core';
 
-const AirdropModal = ({ isModalVisible, setIsModalVisible, onSubmit }) => {
+const AirdropModal = ({
+  isModalVisible,
+  setIsModalVisible,
+  onSubmit,
+}: {
+  isModalVisible: boolean;
+  setIsModalVisible: (value: boolean) => void;
+  onSubmit: (to: string, amount: string) => void;
+}) => {
   const [to, setTo] = React.useState<string>('');
   const [amount, setAmount] = React.useState<string>('');
   return (
