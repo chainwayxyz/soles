@@ -1,4 +1,4 @@
-import { Button, Page } from '@geist-ui/core';
+import { useEffect, useState } from 'react';
 import {
   MemoryRouter as Router,
   Routes,
@@ -9,8 +9,41 @@ import { AiOutlineHome, AiOutlineCode } from 'react-icons/ai';
 import './App.css';
 import Home from './Home';
 import Logs from './Logs';
+import LogData from './LogData';
+
+const { ipcRenderer } = window?.electron || {
+  ipcRenderer: {
+    on: () => {},
+    sendMessage: () => {},
+    once: () => {},
+  },
+};
 
 export default function App() {
+  const [log, setLog] = useState(new LogData());
+  const [solanaLog, setSolanaLog] = useState(new LogData());
+
+  useEffect(() => {
+    return ipcRenderer.on('log', (data: any) => {
+      // create a new log object to trigger a re-render
+      setLog((logObj: LogData) => {
+        const newObj = logObj.clone();
+        newObj.addLine(data);
+        return newObj;
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    return ipcRenderer.on('solana-log', (data: any) => {
+      setSolanaLog((logObj: LogData) => {
+        const newObj = logObj.clone();
+        newObj.addLine(data);
+        return newObj;
+      });
+    });
+  }, []);
+
   return (
     <Router>
       <nav
@@ -65,7 +98,10 @@ export default function App() {
         }}
       >
         <Routes>
-          <Route path="/logs" element={<Logs />} />
+          <Route
+            path="/logs"
+            element={<Logs log={log} solanaLog={solanaLog} />}
+          />
           <Route path="/" element={<Home />} />
         </Routes>
       </div>
