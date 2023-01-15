@@ -153,14 +153,15 @@ const createWindow = async () => {
 
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1024,
-    height: 728,
+    width: 1366,
+    height: 768,
     icon: getAssetPath('icon.png'),
     resizable: false,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
+      // devTools: false,
     },
   });
 
@@ -220,6 +221,12 @@ app
 
       console.log('Starting new test validator...');
       const v = spawn('solana-test-validator', [], {});
+      v.stdout.on('data', (data: any) => {
+        mainWindow?.webContents.send('log', data.toString());
+      });
+      v.stderr.on('data', (data: any) => {
+        mainWindow?.webContents.send('log', `Error:${data.toString()}`);
+      });
       localnetProcess = v;
       console.log('New test validator has been started.');
 
@@ -227,6 +234,12 @@ app
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const l = exec('solana logs');
+      l.stdout.on('data', (data: any) => {
+        mainWindow?.webContents.send('solana-log', data.toString());
+      });
+      l.stderr.on('data', (data: any) => {
+        mainWindow?.webContents.send('solana-log', `Error:${data.toString()}`);
+      });
       transactionProcess = l;
 
       event.reply('restart-localnet', 'done');
@@ -241,6 +254,12 @@ app
 
       console.log('Starting new test validator...');
       const v = spawn('solana-test-validator', ['-r'], {});
+      v.stdout.on('data', (data: any) => {
+        mainWindow?.webContents.send('log', data.toString());
+      });
+      v.stderr.on('data', (data: any) => {
+        mainWindow?.webContents.send('log', `Error:${data.toString()}`);
+      });
       localnetProcess = v;
       console.log('New test validator has been started.');
 
@@ -248,6 +267,12 @@ app
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const l = exec('solana logs');
+      l.stdout.on('data', (data: any) => {
+        mainWindow?.webContents.send('solana-log', data.toString());
+      });
+      l.stderr.on('data', (data: any) => {
+        mainWindow?.webContents.send('solana-log', `Error:${data.toString()}`);
+      });
       transactionProcess = l;
 
       event.reply('reset-localnet', 'done');

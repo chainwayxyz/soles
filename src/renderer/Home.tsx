@@ -140,7 +140,14 @@ function Home() {
       ipcRenderer.sendMessage('get-keypair', [index]);
     };
     return (
-      <Button type="error" auto scale={1 / 3} font="12px" onClick={keyHandler}>
+      <Button
+        type="secondary"
+        ghost
+        auto
+        scale={1 / 3}
+        font="12px"
+        onClick={keyHandler}
+      >
         Get Key Pair
       </Button>
     );
@@ -152,8 +159,34 @@ function Home() {
       setLoading(true);
     };
     return (
-      <Button type="error" auto scale={1 / 3} font="12px" onClick={keyHandler}>
-        Request Token
+      <Button
+        type="secondary"
+        ghost
+        auto
+        scale={1 / 3}
+        font="12px"
+        onClick={keyHandler}
+      >
+        Request Tokens
+      </Button>
+    );
+  };
+
+  const transferAction = (_value: any, _rowData: any, index: any) => {
+    const keyHandler = () => {
+      setTransferKey(index);
+      setIsTransferModalVisible(true);
+    };
+    return (
+      <Button
+        type="secondary"
+        ghost
+        auto
+        scale={1 / 3}
+        font="12px"
+        onClick={keyHandler}
+      >
+        Transfer Tokens
       </Button>
     );
   };
@@ -166,18 +199,6 @@ function Home() {
   const restartHandler = () => {
     ipcRenderer.sendMessage('restart-localnet', []);
     setLoading(true);
-  };
-
-  const transferAction = (_value: any, _rowData: any, index: any) => {
-    const keyHandler = () => {
-      setTransferKey(index);
-      setIsTransferModalVisible(true);
-    };
-    return (
-      <Button type="error" auto scale={1 / 3} font="12px" onClick={keyHandler}>
-        Transfer Tokens
-      </Button>
-    );
   };
 
   const transferHandler = (
@@ -346,7 +367,7 @@ function Home() {
             >
               <BiCoin size={20} />
               <br />
-              Airdrop
+              Airdrop To Account
             </Text>
             <Text
               p
@@ -382,10 +403,28 @@ function Home() {
         </Grid>
         <Grid xs={24} style={{ overflowY: 'scroll' }}>
           <Table data={accounts}>
-            <Table.Column prop="index" label="Index" />
-            <Table.Column prop="address" label="Address" />
-            <Table.Column prop="balance" label="Balance" />
-            <Table.Column prop="key" label="Key" render={keyAction} />
+            <Table.Column
+              prop="index"
+              label="Index"
+              render={(v: string) => (
+                <Text style={{ color: 'white' }}>{v}</Text>
+              )}
+            />
+            <Table.Column
+              prop="address"
+              label="Address"
+              render={(v: string) => (
+                <Text style={{ color: 'white' }}>{v}</Text>
+              )}
+            />
+            <Table.Column
+              prop="balance"
+              label="Balance"
+              render={(v: string) => (
+                <Text style={{ color: 'white' }}>{v}</Text>
+              )}
+            />
+            <Table.Column prop="key" label="Keypair" render={keyAction} />
             <Table.Column
               prop="requst"
               label="Request Tokens"

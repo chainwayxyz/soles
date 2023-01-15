@@ -22,8 +22,9 @@ const Logs = ({ log, solanaLog }: { log: LogData; solanaLog: LogData }) => {
         >
           <Textarea
             style={{
-              height: '100vh',
+              height: '75vh',
               width: '100vw',
+              fontFamily: 'monospace',
             }}
             value={solanaLog.getLines().join('\n')}
             readOnly
@@ -45,8 +46,9 @@ const Logs = ({ log, solanaLog }: { log: LogData; solanaLog: LogData }) => {
         >
           <Textarea
             style={{
-              height: '100vh',
+              height: '75vh',
               width: '100vw',
+              fontFamily: 'monospace',
             }}
             value={log.getLines().join('\n')}
             readOnly
