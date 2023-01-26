@@ -77,7 +77,7 @@ const checkAndDownloadSolanaTools = async () => {
 
   // mkdir ~/.soles-config if it doesn't exist
   try {
-    await exec('mkdir ~/.solana-config/test-keys');
+    await exec('mkdir -p ~/.solana-config/test-keys');
   } catch (err) {
     console.log('Key directory already exists, continuing');
   }
